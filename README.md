@@ -2,6 +2,8 @@
 
 # Tech Wishlist
 
+**Deploy:** https://techwishlist.vercel.app
+
 **Organize suas tecnologias de estudo com prioridades personalizadas**
 
 [![React](https://img.shields.io/badge/React-19.2.0-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactjs.org/)
@@ -26,8 +28,6 @@
 - **Priorização**: Sistema de níveis de prioridade para organizar seus estudos
 - **Código Limpo**: Implementação seguindo as melhores práticas do React 19
 
-- **Deploy**: (em breve)
-
 ---
 
 ## Começando
@@ -44,8 +44,8 @@ Antes de começar, certifique-se de ter instalado:
 
 1. **Clone o repositório**
    ```bash
-   git clone https://github.com/bia-bez/Tech-Wishlist.git
-   cd Tech-Wishlist
+   git clone https://github.com/bia-bez/techwishlist
+   cd techwishlist
    ```
 
 2. **Instale as dependências**
@@ -60,6 +60,8 @@ Antes de começar, certifique-se de ter instalado:
    VITE_SUPABASE_URL=sua_url_do_supabase
    VITE_SUPABASE_ANON_KEY=sua_chave_anonima
    ```
+   ⚠️ Observação: As variáveis devem iniciar com `VITE_` para serem acessíveis no frontend via Vite.
+
 
 4. **Inicie o servidor de desenvolvimento**
    ```bash
@@ -75,7 +77,7 @@ Antes de começar, certifique-se de ter instalado:
 ## 📁 Estrutura do Projeto
 
 ```
-Tech-Wishlist/
+techwishlist/
 ├── public/              # Arquivos estáticos
 ├── src/
 │   ├── assets/          # Imagens, ícones e recursos
@@ -128,13 +130,24 @@ Tech-Wishlist/
 ## Funcionalidades
 
 - ✅ Adicionar tecnologias à lista de desejos
-- ✅ Definir níveis de prioridade (Alta, Média, Baixa)
+- ✅ Definir níveis de prioridade (de 1 a 5)
 - ✅ Editar e remover itens da lista
 - ✅ Sincronização automática com Supabase
 - ✅ Interface responsiva e intuitiva
 - ✅ Validação de dados em tempo real
 
 ---
+
+## Integração com Supabase e Segurança
+
+A integração é realizada utilizando o pacote `@supabase/supabase-js`.
+
+A aplicação utiliza o Supabase como Backend as a Service (BaaS), realizando integração direta via client oficial utilizando variáveis de ambiente (`VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`).
+
+A tabela `tech_wishlist` possui Row Level Security (RLS) habilitado.
+Para o escopo do projeto, foi criada uma policy que permite operações via role anon, já que a aplicação não implementa autenticação de usuários.
+
+As variáveis de ambiente foram configuradas tanto no ambiente local quanto no deploy na Vercel, garantindo segurança das chaves e funcionamento correto em produção.
 
 
 ## Licença

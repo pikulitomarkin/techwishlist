@@ -93,13 +93,13 @@ function App() {
 
     if (active.id === "tech-form-widget") {
       setFormPos((prev) => ({
-        x: prev.x + delta.x,
-        y: prev.y + delta.y,
+        x: Math.max(0, prev.x + delta.x),
+        y: Math.max(0, prev.y + delta.y),
       }));
     } else if (active.id === "brand-logo-widget") {
       setLogoPos((prev) => ({
-        x: prev.x + delta.x,
-        y: prev.y + delta.y,
+        x: Math.max(0, prev.x + delta.x),
+        y: Math.max(0, prev.y + delta.y),
       }));
     } else {
       setPositions((prev) => {
@@ -107,8 +107,8 @@ function App() {
         return {
           ...prev,
           [active.id]: {
-            x: current.x + delta.x,
-            y: current.y + delta.y,
+            x: Math.max(0, current.x + delta.x),
+            y: Math.max(0, current.y + delta.y),
           },
         };
       });

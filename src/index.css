@@ -298,12 +298,10 @@ body {
 .dashboard-canvas {
     position: absolute;
     inset: 0;
-    width: 100%;
-    height: 100%;
-    /* Canvas invisível - apenas área funcional */
+    /* Canvas infinito: overflow VISÍVEL para permitir pan/zoom sem clippar */
+    overflow: visible;
     background: transparent;
     border: none;
-    overflow: hidden;
 }
 
 /* Grid de pontos decorativo (referência visual) */

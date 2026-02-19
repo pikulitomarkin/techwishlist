@@ -52,7 +52,19 @@ function App() {
   // Cards state
   const [positions, setPositions] = useState(() => {
     const saved = localStorage.getItem("tech_layout_positions");
-    return saved ? JSON.parse(saved) : {};
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const sanitized = {};
+      // Sanitiza cada posição salva
+      Object.keys(parsed).forEach((key) => {
+        sanitized[key] = {
+          x: Math.max(0, parsed[key].x),
+          y: Math.max(0, parsed[key].y),
+        };
+      });
+      return sanitized;
+    }
+    return {};
   });
   const [sizes, setSizes] = useState(() => {
     const saved = localStorage.getItem("tech_layout_sizes");
@@ -62,7 +74,11 @@ function App() {
   // Form Widget state
   const [formPos, setFormPos] = useState(() => {
     const saved = localStorage.getItem("tech_layout_form_pos");
-    return saved ? JSON.parse(saved) : { x: 20, y: 140 };
+    if (saved) {
+      const p = JSON.parse(saved);
+      return { x: Math.max(0, p.x), y: Math.max(0, p.y) };
+    }
+    return { x: 20, y: 140 };
   });
   const [formSize, setFormSize] = useState(() => {
     const saved = localStorage.getItem("tech_layout_form_size");
@@ -72,7 +88,11 @@ function App() {
   // Logo Widget state
   const [logoPos, setLogoPos] = useState(() => {
     const saved = localStorage.getItem("tech_layout_logo_pos");
-    return saved ? JSON.parse(saved) : { x: 400, y: 20 };
+    if (saved) {
+      const p = JSON.parse(saved);
+      return { x: Math.max(0, p.x), y: Math.max(0, p.y) };
+    }
+    return { x: 400, y: 20 };
   });
 
   const containerRef = useRef(null);

@@ -5,20 +5,19 @@
  * - CRUD via hook useTechs (Supabase)
  * - Posições x,y de cada card no canvas (drag livre)
  * - Tamanhos w,h de cada card (resize)
- * - Posição e tamanho do TechFormWidget (novo)
- * - Layout geral da dashboard (Canvas Infinito)
+ * - Posição e tamanho do TechFormWidget
+ * - Layout geral da dashboard (Canvas Infinito com Zoom & Pan)
  */
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useTechs } from "./hooks/useTechs";
-import TechFormWidget from "./components/TechFormWidget"; // Widget flutuante
-import BrandLogoWidget from "./components/BrandLogoWidget"; // Logo arrastável
-import ZoomControls from "./components/ZoomControls"; // Controles de Zoom
+import TechFormWidget from "./components/TechFormWidget";
+import BrandLogoWidget from "./components/BrandLogoWidget";
+import ZoomControls from "./components/ZoomControls";
 import TechList from "./components/TechList";
 import ErrorBanner from "./components/ErrorBanner";
 
 /**
  * Calcula posições iniciais em grid para cards sem posição definida.
- * Distribui em colunas de 300px com 16px de gap.
  */
 function calculateGridPositions(techs, existingPositions, containerWidth = 900) {
   const positions = { ...existingPositions };
@@ -34,7 +33,6 @@ function calculateGridPositions(techs, existingPositions, containerWidth = 900) 
     if (positions[tech.id]) return;
     const col = nextIndex % cols;
     const row = Math.floor(nextIndex / cols);
-    // Offset inicial para não ficar em cima do form (exagerado para segurança)
     const startY = 400;
     positions[tech.id] = {
       x: col * (cardW + gapX),
@@ -50,13 +48,12 @@ function App() {
   const { techs, loading, error, addTech, updateTech, deleteTech, clearError } =
     useTechs();
 
-  // Cards state
+  // ─── Card State ───
   const [positions, setPositions] = useState(() => {
     const saved = localStorage.getItem("tech_layout_positions");
     if (saved) {
       const parsed = JSON.parse(saved);
       const sanitized = {};
-      // Sanitiza cada posição salva
       Object.keys(parsed).forEach((key) => {
         sanitized[key] = {
           x: Math.max(0, parsed[key].x),
@@ -72,7 +69,7 @@ function App() {
     return saved ? JSON.parse(saved) : {};
   });
 
-  // Form Widget state
+  // ─── Form Widget State ───
   const [formPos, setFormPos] = useState(() => {
     const saved = localStorage.getItem("tech_layout_form_pos");
     if (saved) {
@@ -86,7 +83,7 @@ function App() {
     return saved ? JSON.parse(saved) : { w: 360, h: "auto" };
   });
 
-  // Logo Widget state
+  // ─── Logo Widget State ───
   const [logoPos, setLogoPos] = useState(() => {
     const saved = localStorage.getItem("tech_layout_logo_pos");
     if (saved) {
@@ -96,47 +93,64 @@ function App() {
     return { x: 400, y: 20 };
   });
 
+  // ─── View State (Pan & Zoom) ───
+  const [viewState, setViewState] = useState(() => {
+    const saved = localStorage.getItem("tech_layout_view");
+    return saved ? JSON.parse(saved) : { x: 0, y: 0, scale: 1 };
+  });
+
   const containerRef = useRef(null);
 
-  // Atribui posições automáticas
+  // ─── Grid auto-posicionamento ───
   useEffect(() => {
     if (techs.length === 0) return;
     const width = containerRef.current?.offsetWidth || 900;
     setPositions((prev) => calculateGridPositions(techs, prev, width));
   }, [techs]);
 
-  /**
-   * handleDragEnd: O Coração do Drag & Drop
-   * 
-   * Esta função é chamada quando o usuário solta um item.
-   * O objeto 'active' diz quem foi arrastado.
-   * O objeto 'delta' diz o quanto ele se moveu (x, y) desde o início.
-   */
-  /**
-   * handleDragEnd: O Coração do Drag & Drop
-   * 
-   * Agora com "Physic Walls":
-   * Impede que os elementos saiam de QUALQUER borda da tela.
-   * Respeita o tamanho atual da janela (viewport).
-   */
-  // View State (Pan & Zoom)
-  const [viewState, setViewState] = useState(() => {
-    const saved = localStorage.getItem("tech_layout_view");
-    return saved ? JSON.parse(saved) : { x: 0, y: 0, scale: 1 };
-  });
+  // ─── handleDragEnd (CORE) ───
+  // Atualiza posição do item arrastado, compensando zoom.
+  const handleDragEnd = useCallback((event) => {
+    const { active, delta } = event;
+    if (!delta) return;
 
-  // Persist View State
-  useEffect(() => {
-    localStorage.setItem("tech_layout_view", JSON.stringify(viewState));
-  }, [viewState]);
+    const scale = viewState.scale;
+    const adjustedDelta = {
+      x: delta.x / scale,
+      y: delta.y / scale,
+    };
+
+    if (active.id === "tech-form-widget") {
+      setFormPos((prev) => ({
+        x: prev.x + adjustedDelta.x,
+        y: prev.y + adjustedDelta.y,
+      }));
+    } else if (active.id === "brand-logo-widget") {
+      setLogoPos((prev) => ({
+        x: prev.x + adjustedDelta.x,
+        y: prev.y + adjustedDelta.y,
+      }));
+    } else {
+      setPositions((prev) => {
+        const current = prev[active.id] || { x: 0, y: 0 };
+        return {
+          ...prev,
+          [active.id]: {
+            x: current.x + adjustedDelta.x,
+            y: current.y + adjustedDelta.y,
+          },
+        };
+      });
+    }
+  }, [viewState.scale]);
 
   // ─── Zoom Helpers ───
   const handleZoomIn = useCallback(() => {
-    setViewState(prev => ({ ...prev, scale: Math.min(prev.scale + 0.1, 5) }));
+    setViewState((prev) => ({ ...prev, scale: Math.min(prev.scale + 0.1, 5) }));
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    setViewState(prev => ({ ...prev, scale: Math.max(prev.scale - 0.1, 0.1) }));
+    setViewState((prev) => ({ ...prev, scale: Math.max(prev.scale - 0.1, 0.1) }));
   }, []);
 
   const handleReset = useCallback(() => {
@@ -144,7 +158,6 @@ function App() {
   }, []);
 
   // ─── Auto-Pan Logic (Edge Scrolling) ───
-  // Quando arrastamos um CARD perto da borda, movemos a câmera.
   const [isDraggingItem, setIsDraggingItem] = useState(false);
   const autoPanIntervalRef = useRef(null);
   const currentPanVelocity = useRef({ dx: 0, dy: 0 });
@@ -153,25 +166,41 @@ function App() {
     setIsDraggingItem(true);
   }, []);
 
-  const handleGlobalDragEnd = useCallback((event) => {
-    setIsDraggingItem(false);
-    handleDragEnd(event);
-    stopAutoPan();
-  }, [handleDragEnd]);
-
-  const stopAutoPan = () => {
-    if (autoPanIntervalRef.current) {
-      clearInterval(autoPanIntervalRef.current);
-      autoPanIntervalRef.current = null;
-    }
-    currentPanVelocity.current = { dx: 0, dy: 0 };
-  };
+  const handleGlobalDragEnd = useCallback(
+    (event) => {
+      setIsDraggingItem(false);
+      handleDragEnd(event);
+      // stopAutoPan inline
+      if (autoPanIntervalRef.current) {
+        clearInterval(autoPanIntervalRef.current);
+        autoPanIntervalRef.current = null;
+      }
+      currentPanVelocity.current = { dx: 0, dy: 0 };
+    },
+    [handleDragEnd]
+  );
 
   useEffect(() => {
     if (!isDraggingItem) {
-      stopAutoPan();
+      if (autoPanIntervalRef.current) {
+        clearInterval(autoPanIntervalRef.current);
+        autoPanIntervalRef.current = null;
+      }
+      currentPanVelocity.current = { dx: 0, dy: 0 };
       return;
     }
+
+    // Inicia loop de auto-pan (60fps)
+    autoPanIntervalRef.current = setInterval(() => {
+      const { dx, dy } = currentPanVelocity.current;
+      if (dx !== 0 || dy !== 0) {
+        setViewState((prev) => ({
+          ...prev,
+          x: prev.x + dx,
+          y: prev.y + dy,
+        }));
+      }
+    }, 16);
 
     const checkEdge = (x, y) => {
       const edgeThreshold = 100;
@@ -183,120 +212,92 @@ function App() {
       let dy = 0;
 
       if (x < edgeThreshold) dx = Math.min(maxSpeed, (edgeThreshold - x) / 2);
-      if (x > vw - edgeThreshold) dx = -Math.min(maxSpeed, (x - (vw - edgeThreshold)) / 2);
+      if (x > vw - edgeThreshold)
+        dx = -Math.min(maxSpeed, (x - (vw - edgeThreshold)) / 2);
       if (y < edgeThreshold) dy = Math.min(maxSpeed, (edgeThreshold - y) / 2);
-      if (y > vh - edgeThreshold) dy = -Math.min(maxSpeed, (y - (vh - edgeThreshold)) / 2);
+      if (y > vh - edgeThreshold)
+        dy = -Math.min(maxSpeed, (y - (vh - edgeThreshold)) / 2);
 
       currentPanVelocity.current = { dx, dy };
-
-      if (dx !== 0 || dy !== 0) {
-        if (!autoPanIntervalRef.current) {
-          autoPanIntervalRef.current = setInterval(() => {
-            const { dx, dy } = currentPanVelocity.current;
-            if (dx !== 0 || dy !== 0) {
-              setViewState(prev => ({
-                ...prev,
-                x: prev.x + dx,
-                y: prev.y + dy
-              }));
-            }
-          }, 16);
-        }
-      } else {
-        stopAutoPan();
-      }
     };
 
-    const onWindowMouseMove = (e) => {
-      checkEdge(e.clientX, e.clientY);
-    };
-
-    const onWindowTouchMove = (e) => {
+    const onMouseMove = (e) => checkEdge(e.clientX, e.clientY);
+    const onTouchMove = (e) => {
       if (e.touches.length > 0) {
         checkEdge(e.touches[0].clientX, e.touches[0].clientY);
       }
     };
 
-    window.addEventListener("mousemove", onWindowMouseMove);
-    window.addEventListener("touchmove", onWindowTouchMove, { passive: false });
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
 
     return () => {
-      window.removeEventListener("mousemove", onWindowMouseMove);
-      window.removeEventListener("touchmove", onWindowTouchMove);
-      stopAutoPan();
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("touchmove", onTouchMove);
+      if (autoPanIntervalRef.current) {
+        clearInterval(autoPanIntervalRef.current);
+        autoPanIntervalRef.current = null;
+      }
     };
   }, [isDraggingItem]);
 
-  /**
-   * handleDragEnd: O Coração do Drag & Drop
-   * ...
-   */
-  const handleDragEndRef = useCallback((event) => {
-    // Mantido apenas para referência, mas o handleGlobalDragEnd chama o original handleDragEnd
-    // que está definido abaixo com todas as compensações de zoom.
-  }, []);
+  // ─── Canvas Wheel Zoom/Pan ───
+  const handleWheel = useCallback(
+    (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const zoomSensitivity = 0.001;
+        const delta = -e.deltaY * zoomSensitivity;
+        const newScale = Math.min(
+          Math.max(0.1, viewState.scale + delta),
+          5
+        );
+        setViewState((prev) => ({ ...prev, scale: newScale }));
+      } else {
+        setViewState((prev) => ({
+          ...prev,
+          x: prev.x - e.deltaX,
+          y: prev.y - e.deltaY,
+        }));
+      }
+    },
+    [viewState.scale]
+  );
 
-  // ─── Canvas Pan & Zoom Handlers ───
-
-  const handleWheel = useCallback((e) => {
-    // Se estiver segurando Ctrl ou usando pinch-to-zoom (trackpad)
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      const zoomSensitivity = 0.001;
-      const delta = -e.deltaY * zoomSensitivity;
-      const newScale = Math.min(Math.max(0.1, viewState.scale + delta), 5); // Min 0.1x, Max 5x
-
-      // Zoom focalizado no mouse (mais complexo, por enquanto zoom simples no centro/canto)
-      // Futuramente podemos implementar zoom focalizado subtraindo offsets.
-
-      setViewState(prev => ({ ...prev, scale: newScale }));
-    } else {
-      // Pan normal com scroll
-      setViewState(prev => ({
-        ...prev,
-        x: prev.x - e.deltaX,
-        y: prev.y - e.deltaY
-      }));
-    }
-  }, [viewState.scale]);
-
-  // ─── Background Pan Handlers ───
+  // ─── Background Pan (Click + Drag no fundo) ───
   const [isPanning, setIsPanning] = useState(false);
   const lastPanRef = useRef({ x: 0, y: 0 });
 
   const handleMouseDown = useCallback((e) => {
-    // Só inicia Pan se clicar no fundo (app-container ou dashboard-canvas)
-    // e se NÃO estiver clicando em algo interativo (botões, inputs, cards)
-    const isInteractive = e.target.closest("button, input, a, .tech-card, .glass-card, .resize-handle");
-
-    // Middle click (button 1) ou Left click (button 0) no fundo
+    const isInteractive = e.target.closest(
+      "button, input, a, .tech-card, .glass-card, .resize-handle"
+    );
     if (!isInteractive && (e.button === 0 || e.button === 1)) {
       setIsPanning(true);
       lastPanRef.current = { x: e.clientX, y: e.clientY };
-      e.preventDefault(); // Evita seleção de texto
+      e.preventDefault();
     }
   }, []);
 
-  const handleMouseMove = useCallback((e) => {
-    if (!isPanning) return;
-
-    const dx = e.clientX - lastPanRef.current.x;
-    const dy = e.clientY - lastPanRef.current.y;
-
-    lastPanRef.current = { x: e.clientX, y: e.clientY };
-
-    setViewState((prev) => ({
-      ...prev,
-      x: prev.x + dx,
-      y: prev.y + dy,
-    }));
-  }, [isPanning]);
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (!isPanning) return;
+      const dx = e.clientX - lastPanRef.current.x;
+      const dy = e.clientY - lastPanRef.current.y;
+      lastPanRef.current = { x: e.clientX, y: e.clientY };
+      setViewState((prev) => ({
+        ...prev,
+        x: prev.x + dx,
+        y: prev.y + dy,
+      }));
+    },
+    [isPanning]
+  );
 
   const handleMouseUp = useCallback(() => {
     setIsPanning(false);
   }, []);
 
-  // Listener global para MouseUp (caso solte fora do elemento)
   useEffect(() => {
     if (isPanning) {
       window.addEventListener("mouseup", handleMouseUp);
@@ -311,9 +312,7 @@ function App() {
     };
   }, [isPanning, handleMouseMove, handleMouseUp]);
 
-  // Pan com botão do meio ou Space+Drag seria implementado aqui ou no wrapper
-
-
+  // ─── Resize Helpers ───
   const handleResizeCard = useCallback((id, newSize) => {
     setSizes((prev) => ({ ...prev, [id]: newSize }));
   }, []);
@@ -322,12 +321,8 @@ function App() {
     setFormSize(newSize);
   }, []);
 
-  // ─── EFFECTS: PERSISTÊNCIA ───
-  // Para que o usuário não perca o layout ao dar F5, salvamos tudo no localStorage.
-  // O useEffect roda sempre que o estado especificado no array de dependências muda.
-
+  // ─── Persistência ───
   useEffect(() => {
-    // JSON.stringify converte o objeto JS em string para salvar no browser
     localStorage.setItem("tech_layout_positions", JSON.stringify(positions));
   }, [positions]);
 
@@ -347,34 +342,23 @@ function App() {
     localStorage.setItem("tech_layout_logo_pos", JSON.stringify(logoPos));
   }, [logoPos]);
 
+  useEffect(() => {
+    localStorage.setItem("tech_layout_view", JSON.stringify(viewState));
+  }, [viewState]);
+
+  // ─── Render ───
   return (
     <div
       className={`app-container ${isPanning ? "cursor-grabbing" : "cursor-grab"}`}
       ref={containerRef}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
-      style={{
-        // Garante que o container capture, mas permite cursor customizado
-        touchAction: "none" // Melhora performance em touch
-      }}
+      style={{ touchAction: "none" }}
     >
-      {/* Efeitos decorativos de fundo */}
       <div className="glow glow-1" />
       <div className="glow glow-2" />
 
-
-
-      {/* Banner de erro */}
       {error && <ErrorBanner message={error} onDismiss={clearError} />}
-
-      {/* DndContext Global (Canvas) gerenciado pelo TechList
-          Mas o TechFormWidget precisa estar DENTRO do contexto de drag.
-          
-          Como o TechList já tem o DndContext interno, precisamos refatorar
-          para elevar o DndContext para o App, OU passar o Widget como children pro TechList.
-          
-          Vou usar a estratégia de passar como children para o TechList (que virou um CanvasWrapper).
-       */}
 
       <TechList
         techs={techs}
@@ -382,18 +366,13 @@ function App() {
         sizes={sizes}
         onUpdate={updateTech}
         onDelete={deleteTech}
-        // Intercepta DragStart/End para Auto-Pan
         onDragStart={handleGlobalDragStart}
         onDragEnd={handleGlobalDragEnd}
-        // onDragMove não precisa ser passado explicitamente se usamos window listener
         onResize={handleResizeCard}
         loading={loading}
         viewState={viewState}
       >
-        {/* Logo Widget arrastável */}
         <BrandLogoWidget position={logoPos} />
-
-        {/* TechFormWidget agora vive dentro do Canvas Context */}
         <TechFormWidget
           onAdd={addTech}
           position={formPos}
@@ -403,7 +382,6 @@ function App() {
         />
       </TechList>
 
-      {/* Controles de Zoom Flutuantes */}
       <ZoomControls
         scale={viewState.scale}
         onZoomIn={handleZoomIn}
@@ -411,7 +389,6 @@ function App() {
         onReset={handleReset}
       />
 
-      {/* Footer */}
       <footer className="app-footer pointer-events-none fixed bottom-4 left-1/2 -translate-x-1/2">
         <p>
           Feito com <span className="text-red-400">♥</span> por{" "}

@@ -111,38 +111,55 @@ function App() {
    * O objeto 'active' diz quem foi arrastado.
    * O objeto 'delta' diz o quanto ele se moveu (x, y) desde o início.
    */
+  /**
+   * handleDragEnd: O Coração do Drag & Drop
+   * 
+   * Agora com "Physic Walls":
+   * Impede que os elementos saiam de QUALQUER borda da tela.
+   * Respeita o tamanho atual da janela (viewport).
+   */
   const handleDragEnd = useCallback((event) => {
     const { active, delta } = event;
     if (!delta) return;
 
-    // Lógica para limitar o movimento (Clamping)
-    // Math.max(0, valor) garante que nunca tenhamos coordenadas negativas.
-    // Isso cria uma "parede invisível" no topo e esquerda.
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // Tamanhos estimados (ou reais do state) para cálculo de colisão
+    // Se o elemento for maior que a tela, permite apenas 0 (topo/esq)
 
     if (active.id === "tech-form-widget") {
+      const w = formSize.w || 360;
+      const h = typeof formSize.h === 'number' ? formSize.h : 400; // Estima altura se auto
+
       setFormPos((prev) => ({
-        x: Math.max(0, prev.x + delta.x),
-        y: Math.max(0, prev.y + delta.y),
+        x: Math.min(Math.max(0, prev.x + delta.x), vw - w),
+        y: Math.min(Math.max(0, prev.y + delta.y), vh - h),
       }));
     } else if (active.id === "brand-logo-widget") {
+      const w = 280; // Largura do SVG
+      const h = 100; // Altura do SVG
+
       setLogoPos((prev) => ({
-        x: Math.max(0, prev.x + delta.x),
-        y: Math.max(0, prev.y + delta.y),
+        x: Math.min(Math.max(0, prev.x + delta.x), vw - w),
+        y: Math.min(Math.max(0, prev.y + delta.y), vh - h),
       }));
     } else {
-      // Para os cards normais, atualizamos apenas o ID específico
+      // Cards
+      const currentSize = sizes[active.id] || { w: 280, h: 72 };
+
       setPositions((prev) => {
         const current = prev[active.id] || { x: 0, y: 0 };
         return {
           ...prev,
           [active.id]: {
-            x: Math.max(0, current.x + delta.x),
-            y: Math.max(0, current.y + delta.y),
+            x: Math.min(Math.max(0, current.x + delta.x), vw - currentSize.w),
+            y: Math.min(Math.max(0, current.y + delta.y), vh - currentSize.h),
           },
         };
       });
     }
-  }, []);
+  }, [formSize, sizes]);
 
   const handleResizeCard = useCallback((id, newSize) => {
     setSizes((prev) => ({ ...prev, [id]: newSize }));

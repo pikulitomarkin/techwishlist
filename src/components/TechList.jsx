@@ -189,6 +189,8 @@ TechList.propTypes = {
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
       name: PropTypes.string.isRequired,
       priority: PropTypes.number.isRequired,
+      status: PropTypes.string,
+      responsavel: PropTypes.string,
     })
   ).isRequired,
   positions: PropTypes.object.isRequired,

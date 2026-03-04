@@ -61,7 +61,7 @@ function BrandLogo({ className = "" }) {
                         textShadow: "0 0 10px rgba(192, 132, 252, 0.5)",
                     }}
                 >
-                    Tech Wishlist
+                    Task Board
                 </text>
 
                 {/* Definições de Gradientes e Filtros */}

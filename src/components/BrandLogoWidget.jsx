@@ -39,7 +39,7 @@ function BrandLogoWidget({ position }) {
         >
             <BrandLogo />
             <p className="text-center text-white/40 text-sm mt-1 pointer-events-none">
-                Organize suas metas de aprendizado tecnológico
+                Organize suas tarefas e projetos
             </p>
         </div>
     );

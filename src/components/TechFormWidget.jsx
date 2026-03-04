@@ -14,6 +14,13 @@ import { Plus, GripHorizontal } from "lucide-react";
 import { getSuggestions, getTechIcon } from "../data/techIcons";
 import TechIcon from "./TechIcon";
 
+// Configuração de status
+const STATUSES = [
+    { key: "Pendente", dot: "🔴", color: "#ef4444" },
+    { key: "Em Andamento", dot: "🟡", color: "#eab308" },
+    { key: "Concluído", dot: "🟢", color: "#22c55e" },
+];
+
 // Tamanhos limites do widget
 const MIN_W = 320;
 const MIN_H = 200; // Altura inicial compacta
@@ -23,6 +30,8 @@ const MAX_H = 600;
 function TechFormWidget({ onAdd, position, size, onResize, techCount }) {
     const [name, setName] = useState("");
     const [priority, setPriority] = useState(3);
+    const [status, setStatus] = useState("Pendente");
+    const [responsavel, setResponsavel] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -112,11 +121,13 @@ function TechFormWidget({ onAdd, position, size, onResize, techCount }) {
         if (!trimmedName) return;
 
         setSubmitting(true);
-        const success = await onAdd({ name: trimmedName, priority });
+        const success = await onAdd({ name: trimmedName, priority, status, responsavel: responsavel.trim() });
 
         if (success) {
             setName("");
             setPriority(3);
+            setStatus("Pendente");
+            setResponsavel("");
             setShowSuggestions(false);
         }
         setSubmitting(false);
@@ -157,7 +168,7 @@ function TechFormWidget({ onAdd, position, size, onResize, techCount }) {
                 className="form-header cursor-grab active:cursor-grabbing p-4 border-b border-white/5 flex items-center justify-between bg-white/5 rounded-t-2xl select-none"
             >
                 <div className="flex items-center gap-2">
-                    <h2 className="text-white/90 text-sm font-bold uppercase tracking-wide">Minhas Tecnologias</h2>
+                    <h2 className="text-white/90 text-sm font-bold uppercase tracking-wide">Minhas Tarefas</h2>
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="bg-white/10 text-white/80 text-xs px-2 py-0.5 rounded-full font-medium">
@@ -170,13 +181,13 @@ function TechFormWidget({ onAdd, position, size, onResize, techCount }) {
             <form onSubmit={handleSubmit} className="p-6 flex flex-col flex-1 h-full">
                 <h3 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
                     <Plus size={20} className="text-violet-400" />
-                    Nova Tecnologia
+                    Nova Tarefa
                 </h3>
 
                 {/* Input */}
                 <div className="relative mb-4">
-                    <label htmlFor="tech-name" className="block text-white/60 text-xs font-medium mb-1.5 uppercase tracking-wider">
-                        Nome
+                        <label htmlFor="tech-name" className="block text-white/60 text-xs font-medium mb-1.5 uppercase tracking-wider">
+                        NOME
                     </label>
                     <div className="relative flex items-center">
                         {currentIcon && (
@@ -188,7 +199,7 @@ function TechFormWidget({ onAdd, position, size, onResize, techCount }) {
                             ref={inputRef}
                             id="tech-name"
                             type="text"
-                            placeholder="Ex: React..."
+                            placeholder="Ex: Corrigir bug de login..."
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
@@ -216,7 +227,7 @@ function TechFormWidget({ onAdd, position, size, onResize, techCount }) {
                 </div>
 
                 {/* Prioridade */}
-                <div className="mb-6">
+                <div className="mb-4">
                     <label className="block text-white/60 text-xs font-medium mb-1.5 uppercase tracking-wider">
                         Prioridade
                     </label>
@@ -232,6 +243,46 @@ function TechFormWidget({ onAdd, position, size, onResize, techCount }) {
                             </button>
                         ))}
                     </div>
+                </div>
+
+                {/* Status */}
+                <div className="mb-4">
+                    <label className="block text-white/60 text-xs font-medium mb-1.5 uppercase tracking-wider">
+                        Status
+                    </label>
+                    <div className="flex gap-2">
+                        {STATUSES.map((s) => (
+                            <button
+                                key={s.key}
+                                type="button"
+                                onClick={() => setStatus(s.key)}
+                                className="status-form-btn"
+                                style={status === s.key ? {
+                                    borderColor: s.color,
+                                    backgroundColor: s.color + "25",
+                                    color: s.color,
+                                } : {}}
+                            >
+                                <span>{s.dot}</span>
+                                <span className="text-xs">{s.key}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Responsável */}
+                <div className="mb-4">
+                    <label className="block text-white/60 text-xs font-medium mb-1.5 uppercase tracking-wider">
+                        Responsável
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="Ex: João Silva..."
+                        value={responsavel}
+                        onChange={(e) => setResponsavel(e.target.value)}
+                        className="input-field w-full"
+                        autoComplete="off"
+                    />
                 </div>
 
                 {/* Botão (empurrado para baixo se houver espaço extra) */}

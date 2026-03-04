@@ -17,12 +17,12 @@ function EmptyState() {
                 </div>
 
                 <h3 className="text-white font-semibold text-lg mb-2">
-                    Sua wishlist está vazia
+                    Nenhuma tarefa ainda
                 </h3>
                 <p className="text-white/50 text-sm leading-relaxed">
-                    Comece adicionando as tecnologias que você quer aprender.
+                    Comece adicionando suas tarefas e projetos.
                     <br />
-                    Defina prioridades para organizar seus estudos!
+                    Defina prioridades e acompanhe o progresso!
                 </p>
             </div>
         </div>
